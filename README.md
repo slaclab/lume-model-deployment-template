@@ -1,5 +1,8 @@
 # LUME-Model Deployment Template
 
+> [!CAUTION]
+> This template is under active development and may change. Please report any issues or suggestions.
+
 This repository provides a [copier](https://copier.readthedocs.io/) template for deploying machine learning models 
 using [LUME-Model](https://github.com/slaclab/lume-model) in an online environment. It offers a structured, 
 reproducible approach to containerizing and deploying ML models, ensuring consistency and ease of use across different
