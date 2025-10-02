@@ -12,7 +12,9 @@ It was developed for use at SLAC National Accelerator Laboratory, particularly f
 Kubernetes cluster, but can be adapted for other environments. It supports continuous inference using inputs from EPICS
 PVs, and optionally writing outputs back to EPICS PVs. It also supports MLflow for model versioning and tracking.
 
----
+<div align="center">
+  <img src="docs/assets/deployment-diagram.png" alt="Deployment Architecture" width="600"/>
+</div>
 
 > [!IMPORTANT]  
 > Before creating a deployment project using this template, please ensure that:
