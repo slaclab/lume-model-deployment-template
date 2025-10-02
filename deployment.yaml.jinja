@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{deployment_name}}
+  namespace: lume-online-ml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{registered_model_name}}
+  template:
+    metadata:
+      labels:
+        app: {{registered_model_name}}
+    spec:
+      containers:
+      - name: {{registered_model_name}}
+        image: ghcr.io/slaclab/{{registered_model_name}}:{{model_version}}
+        imagePullPolicy: Always
+        command: [ "/bin/bash", "-c" ]
+        args: [ "sleep infinity" ]
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+        env:
+          - name: EPICS_CA_ADDR_LIST
+            valueFrom:
+              secretKeyRef:
+                name: epics-secrets
+                key: ca_addr_list
+          - name: K2EG_IP
+            valueFrom:
+              secretKeyRef:
+                name: k2eg-secrets
+                key: kafka_broker_url
+          - name: K2EG_TOPIC
+            valueFrom:
+              secretKeyRef:
+                name: k2eg-secrets
+                key: k2eg_cmd_topic

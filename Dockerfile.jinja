@@ -1,0 +1,65 @@
+ARG ENVIRONMENT="default"
+ARG INTERFACE="{{interface}}"
+
+FROM ghcr.io/prefix-dev/pixi:noble AS build
+
+ARG ENVIRONMENT
+
+# copy source code, pixi.toml and pixi.lock to the container
+WORKDIR /app
+COPY . .
+
+# Install system dependencies, then clean up
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install --no-install-recommends -qy ca-certificates git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Manually trigger an update of the certificate store
+RUN update-ca-certificates
+
+# run the `install` command (or any other). This will also install the dependencies into `/app/.pixi`
+RUN pixi install --environment $ENVIRONMENT
+# Create the shell-hook bash script to activate the environment
+RUN echo "#!/bin/bash" > /app/entrypoint.sh && \
+    cat config/config_entrypoint.sh >> /app/entrypoint.sh && \
+    pixi shell-hook --environment $ENVIRONMENT -s bash >> /app/entrypoint.sh && \
+    echo '"$@"' >> /app/entrypoint.sh && \
+    echo 'status=$?' >> /app/entrypoint.sh && \
+    echo 'if [ $status -ne 0 ]; then' >> /app/entrypoint.sh && \
+    echo '  echo "Main command failed with exit code $status. Dropping to shell for debugging."' >> /app/entrypoint.sh && \
+    echo '  exec /bin/bash' >> /app/entrypoint.sh && \
+    echo 'fi' >> /app/entrypoint.sh
+
+FROM ghcr.io/prefix-dev/pixi:noble AS production
+
+ARG ENVIRONMENT
+
+# Set env variables
+# TODO: set these dynamically based on interface choice
+ENV PYTHONUNBUFFERED=1
+ENV K2EG_PYTHON_CONFIGURATION_PATH_FOLDER=/app/src/config
+ENV EPICS_CA_AUTO_ADDR_LIST=NO
+
+# only copy the production environment into prod container
+# please note that the "prefix" (path) needs to stay the same as in the build container
+WORKDIR /app
+COPY --from=build /app/.pixi/envs/$ENVIRONMENT /app/.pixi/envs/$ENVIRONMENT
+COPY --from=build /app/pixi.toml /app/pixi.toml
+COPY --from=build /app/pixi.lock /app/pixi.lock
+# The ignore files are needed for 'pixi run' to work in the container
+COPY --from=build /app/.pixi/.gitignore /app/.pixi/.gitignore
+COPY --from=build /app/.pixi/.condapackageignore /app/.pixi/.condapackageignore
+COPY --from=build --chmod=0755 /app/entrypoint.sh /app/entrypoint.sh
+
+COPY . /app/src
+
+# TODO: fix this
+WORKDIR /app/src/src
+
+# set the entrypoint to the shell-hook script (activate the environment and run the command)
+# no more pixi needed in the prod container
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# TODO: make this dynamic based on interface choice
+CMD ["python", "-m", "run", "--interface", "test"]

@@ -1,0 +1,87 @@
+registered_model_name:
+    type: str
+    help: Name of the model as registered in the MLflow Model Registry.
+    default: "lcls-cu-inj-model"
+
+model_version:
+    type: int
+    help: Version of the model as registered in the MLflow Model Registry.
+    default: 1
+
+deployment_name:
+    type: str
+    help: Name of the Kubernetes deployment (must be unique).
+    # todo: validation to check for uniqueness?
+    default: "{{ registered_model_name }}-deployment"
+
+rate:
+    type: float
+    help: The rate at which to run inference on the model, in seconds.
+    default: 1
+
+# TODO: support extra pip requirements, as list? not sure what works
+#extra_pip_requirements:
+#    type: list
+#    help: Comma-separated names/URLs of additional requirements to install (must be a pip installable package, or a URL to an installable git repository).
+#    default: []
+#    # add validation for pip/git package format?
+
+mlflow_tracking_uri:
+    type: str
+    help: The MLflow tracking URI to use. Choose one of the SLAC managed MLflow servers, or your own local server.
+    default: "http://127.0.0.1:8082"
+    choices:
+        - "https://ard-mlflow.slac.stanford.edu/"
+        - "http://127.0.0.1:8082"
+    # TODO: add validation for uri format?
+
+automatic_deployment:
+    type: bool
+    help: Whether to automatically deploy the model to the vcluster.
+    default: |-
+        {% if mlflow_tracking_uri == "https://ard-mlflow.slac.stanford.edu/" -%}
+            true
+        {%- else -%}
+            {#- Don't deploy if testing locally -#}
+            {{ false }}
+        {%- endif %}
+    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
+    choices:
+        - true
+        - false
+
+vcluster:
+    type: str
+    help: The vcluster to deploy the model to.
+    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
+    default: ad-accel-online-ml
+    choices:
+        - ad-accel-online-ml
+        - lcls-ml-online
+
+interface:
+    type: str
+    help: The interface to use for I/O.
+    default: k2eg
+    choices:
+        - epics
+        - k2eg
+        - test
+
+command:
+    type: str
+    help: The command to run the model server, if custom and not running the default streaming module.
+    default: "python -m run.py --interface {{interface}}"
+    # TODO: add validation for command format?
+
+# Exclude files and directories from being copied to the new project
+_exclude:
+  - "**/mlruns"
+  - "**/.idea"
+  - "**/.ipynb_checkpoints"
+  - "**/.DS_Store"
+  - "**/__pycache__"
+  - "**/*.pyc"
+  - "**/copier.yml"
+  - "**/.git"
+  - "**/.ruff_cache"
