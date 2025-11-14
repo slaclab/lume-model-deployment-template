@@ -1,7 +1,6 @@
 registered_model_name:
     type: str
-    help: Name of the model as registered in the MLflow Model Registry.
-    default: "lcls-cu-inj-model"
+    help: Name of the model as registered in the MLflow Model Registry, e.g. "lcls-fel-model".
 
 model_version:
     type: int
@@ -82,6 +81,8 @@ _exclude:
   - "**/.DS_Store"
   - "**/__pycache__"
   - "**/*.pyc"
-  - "**/copier.yml"
+  - "**/copier.yaml"
   - "**/.git"
   - "**/.ruff_cache"
+
+_answers_file: .copier-answers.yaml

@@ -17,8 +17,6 @@ spec:
       - name: {{registered_model_name}}
         image: ghcr.io/slaclab/{{registered_model_name}}:{{model_version}}
         imagePullPolicy: Always
-        command: [ "/bin/bash", "-c" ]
-        args: [ "sleep infinity" ]
         resources:
           limits:
             memory: "2Gi"
@@ -39,3 +37,5 @@ spec:
               secretKeyRef:
                 name: k2eg-secrets
                 key: k2eg_cmd_topic
+          - name: MODEL_VERSION
+            value: "{{model_version}}"
