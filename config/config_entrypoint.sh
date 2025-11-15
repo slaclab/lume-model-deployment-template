@@ -7,9 +7,11 @@ CONFIG_FILE="$CONFIG_DIR/lcls.ini"
 # Check for required environment variables
 if [ -z "$K2EG_IP" ]; then
   echo "Error: K2EG_IP environment variable is not set." >&2
+  exit 1
 fi
 if [ -z "$K2EG_TOPIC" ]; then
   echo "Error: K2EG_TOPIC environment variable is not set." >&2
+  exit 1
 fi
 
 # Ensure config directory exists

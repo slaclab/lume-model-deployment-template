@@ -139,3 +139,5 @@ dmypy.json
 *.ini
 mlartifacts/
 mlruns/
+
+src/online_model/_version.py

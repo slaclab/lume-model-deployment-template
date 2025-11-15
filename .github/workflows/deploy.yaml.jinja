@@ -5,15 +5,19 @@ on:
     inputs:
       image_tag:
         description: 'Docker image tag to deploy'
-        required: true
-        default: 'latest'
+        required: false
+        default: ''
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'deployment.yaml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: {{registered_model_name}}
-      IMAGE_TAG: ${{ github.event.inputs.image_tag }}
       REGISTRY: ghcr.io
       REPO: ${{ github.repository_owner }}/${IMAGE_NAME}
     steps:
@@ -28,6 +32,18 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+      - name: Set IMAGE_TAG
+        run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+            echo "IMAGE_TAG=$SHORT_SHA" >> $GITHUB_ENV
+          else
+            if [[ -n "${{ github.event.inputs.image_tag }}" ]]; then
+              echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+            else
+              echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+            fi
+          fi
       - name: Update deployment.yaml image tag
         run: |
           sed -i "s|\(image: .*/$IMAGE_NAME:\).*|\1$IMAGE_TAG|" deployment.yaml

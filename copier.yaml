@@ -34,20 +34,20 @@ mlflow_tracking_uri:
         - "http://127.0.0.1:8082"
     # TODO: add validation for uri format?
 
-automatic_deployment:
-    type: bool
-    help: Whether to automatically deploy the model to the vcluster.
-    default: |-
-        {% if mlflow_tracking_uri == "https://ard-mlflow.slac.stanford.edu/" -%}
-            true
-        {%- else -%}
-            {#- Don't deploy if testing locally -#}
-            {{ false }}
-        {%- endif %}
-    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
-    choices:
-        - true
-        - false
+#automatic_deployment:
+#    type: bool
+#    help: Whether to automatically deploy the model to the vcluster.
+#    default: |-
+#        {% if mlflow_tracking_uri == "https://ard-mlflow.slac.stanford.edu/" -%}
+#            true
+#        {%- else -%}
+#            {#- Don't deploy if testing locally -#}
+#            {{ false }}
+#        {%- endif %}
+#    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
+#    choices:
+#        - true
+#        - false
 
 vcluster:
     type: str
@@ -67,15 +67,24 @@ interface:
         - k2eg
         - test
 
-command:
+cpu-gpu:
     type: str
-    help: The command to run the model server, if custom and not running the default streaming module.
-    default: "python -m run.py --interface {{interface}}"
-    # TODO: add validation for command format?
+    help: Deploy to CPU or GPU nodes.
+    default: "cpu"
+    choices:
+        - "cpu"
+        #- "gpu"
+
+#command:
+#    type: str
+#    help: The command to run the model server, if custom and not running the default streaming module.
+#    default: "python -m run.py --interface {{interface}}"
+#    # TODO: add validation for command format?
 
 # Exclude files and directories from being copied to the new project
 _exclude:
   - "**/mlruns"
+  - "**/mlartifacts"
   - "**/.idea"
   - "**/.ipynb_checkpoints"
   - "**/.DS_Store"

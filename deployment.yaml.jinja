@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: {{registered_model_name}}
-        image: ghcr.io/slaclab/{{registered_model_name}}:{{model_version}}
+        image: ghcr.io/slaclab/{{registered_model_name}}:test-{{model_version}}
         imagePullPolicy: Always
         resources:
           limits:
@@ -38,4 +38,4 @@ spec:
                 name: k2eg-secrets
                 key: k2eg_cmd_topic
           - name: MODEL_VERSION
-            value: "{{model_version}}"
+            value: "1"

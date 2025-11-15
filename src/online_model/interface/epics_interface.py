@@ -1,12 +1,24 @@
 import os
+import logging
+import sys
 import epics
+
+logging.basicConfig(
+    stream=sys.stdout,
+    format="%(asctime)s,%(msecs)03d %(name)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.DEBUG,
+)
+logger = logging.getLogger(__name__)
 
 
 class EPICSInterface:
     """Interface for interacting with EPICS Process Variables (PVs)."""
 
     def __init__(self, pv_name_list=None):
-        """Check environment variables."""
+        """Instantiate and check environment variables."""
+        self.name = "epics"
+
         if "EPICS_CA_ADDR_LIST" not in os.environ:
             raise EnvironmentError(
                 "EPICS_CA_ADDR_LIST environment variable is not set."
@@ -15,6 +27,7 @@ class EPICSInterface:
             raise EnvironmentError(
                 "EPICS_CA_AUTO_ADDR_LIST environment variable is not set."
             )
+
         self.pv_objects = None
         if pv_name_list is not None:
             self.create_pvs(pv_name_list)
@@ -66,4 +79,30 @@ class EPICSInterface:
                     results[pv.pvname] = {"error": "Connection failed"}
             except Exception as e:
                 results[pv.pvname] = {"error": str(e)}
+                logger.error(f"Error retrieving PV {pv.pvname}: {e}")
         return results
+
+    def put_output_variables(self, output_dict: dict):
+        """
+        Write values to EPICS output PVs.
+
+        Parameters
+        ----------
+        output_dict : dict
+            Dictionary mapping PV names to their values to be written.
+
+        Returns
+        -------
+        None
+        """
+        # TODO: need to instantiate PV objects first (WIP)
+        for pv_name, value in output_dict.items():
+            pv = self.pv_objects[pv_name]
+            try:
+                # Wait for the connection to be established
+                if pv.wait_for_connection(timeout=5):
+                    pv.put(value)
+                else:
+                    logger.error(f"Connection failed for PV {pv.pvname}")
+            except Exception as e:
+                logger.error(f"Error writing to PV {pv.pvname}: {e}")

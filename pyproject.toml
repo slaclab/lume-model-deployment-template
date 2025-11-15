@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=75.0", "setuptools_scm[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "online-model" # TODO: make it registered model name?
+description = "" # TODO: add from copier answers?
+
+# Adjust author information as needed
+authors = [
+    { name = "Sara Miskovich", email = "smiskov@slac.stanford.edu" }
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pyepics",
+    "k2eg",
+    # mlflow on conda is at 3.2.0 but we probably need 3.4.x so can't install lume and mlflow from conda in pixi
+    "mlflow==3.4.*",
+    "lume-model>=2.0",
+    "sympy",
+]
+
+dynamic = ["version"]
+[tool.setuptools_scm]
+version_file = "src/online_model/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pixi.workspace]
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+online_model = { path = ".", editable = true }
+
+#[tool.pixi.feature.gpu]
+#system-requirements = { cuda = "12.0" }
+#[tool.pixi.feature.gpu.pypi-dependencies]
+#torch = { version = ">=2.6.0", index = "https://download.pytorch.org/whl/cu124" }
+
+[tool.pixi.feature.cpu.pypi-dependencies]
+torch = { version = ">=2.7.1", index = "https://download.pytorch.org/whl/cpu" }
+
+[tool.pixi.environments]
+default = ["cpu"]
+cpu = ["cpu"]
+#gpu = ["gpu"]

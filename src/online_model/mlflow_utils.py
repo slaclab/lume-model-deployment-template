@@ -2,10 +2,15 @@ import numpy as np
 
 
 class TestInterface:
+    __test__ = False
+
     """
     A mock interface for testing purposes.
     It simulates the behavior of an interface that provides input variables.
     """
+
+    def __init__(self):
+        self.name = "test"
 
     def get_input_variables(self, input_variables: list) -> dict:
         """
