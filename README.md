@@ -113,14 +113,14 @@ improvements to the template repository!
 # Development Roadmap
 
 ## 1-2 months
-- [ ] Add support for pre-model-evaluation PV transformations (e.g., formulas)
+- [X] Add support for pre-model-evaluation PV transformations (e.g., formulas)
 - [ ] Add support for local model loading for models that are not in MLflow
 - [ ] Expand docs (how to upload models to MLflow and versioning/tagging requirements, how to set up MLflow locally 
 for testing, how to set up vcluster access, etc)
-- [ ] Tutorial + demo for 1-2 use cases
+- [X] Tutorial + demo for 1-2 use cases
 
 ## 2-4 months
 - [ ] Add templated way of adding requirements from the user at project generation
-- [ ] Add support for writing outputs back to EPICS PVs
-- [ ] Add support for automated deployment to S3DF Kubernetes (tentative)
+- [X] Add support for writing outputs back to EPICS PVs
+- [X] Add support for automated deployment to S3DF Kubernetes (tentative)
 - [ ] Add support for gpu-based models
