@@ -56,16 +56,16 @@ copier copy gh:slaclab/lume-model-deployment-template <destination-folder>
 You will be prompted for configuration values (e.g., deployment name, model version, etc.). You should have the
 following information ready:
 - **registered_model_name**: Name of the model as registered in the MLflow Model Registry. This should be something 
-like `snd-nn-model` or `lcls-cu-inj-model`.
+like `snd-nn-model` or `lcls-cu-inj-model`, using all lowercase letters, numbers and hyphens.
 - **model_version**: Version of the model as registered in the MLflow Model Registry. This should be an integer, e.g., `1`.
 - **deployment_name**: Name of the Kubernetes deployment. This must be unique within the Kubernetes namespace you are deploying to.
-It should be something like `snd-nn-model-deployment` or `lcls-cu-inj-model-deployment`.
+It should be something like `snd-nn-model-deployment` or `lcls-cu-inj-model-deployment`, using all lowercase letters, numbers and hyphens.
 **Note that all deployments will be in the same namespace, `lume-online-ml`, so choose unique names.**
 - **rate**: Inference rate in Hz. This is how often the model will run inference. Default is `1` (once per second).
-- **extra_pip_requirements**: Any additional pip packages your model needs that are not already included in the base image.
 - **mlflow_tracking_uri**: The MLflow tracking server URI. This can be either the production server or a local server for testing.
 - **vcluster**: The name of the vcluster to deploy to. This should be either `ad-accel-online-ml` or `lcls-ml-online`.
 - **interface**: The interface to use for EPICS PV access. This should be either `epics`, `k2eg`, or `test`.
+- **device**: Whether to use `cpu` or `gpu` for model inference. Default is `cpu`.
 
 ### Updating an Existing Deployment
 If the template is updated and you want to apply changes to your project:
@@ -77,10 +77,12 @@ This will re-apply the template, preserving your answers and customizations wher
 ---
 
 ## Project Structure
-- `src/` — Source code for deployment logic and interfaces
-- `config/` — Configuration files for deployments
+Main project files:
+- `README.md` — This file with instructions and information about the deployment
+- `src/online_model` — Source code for deployment logic and interfaces
+- `config/` — Configuration files for k2eg deployments
 - `Dockerfile.jinja` — Jinja-templated Dockerfile for containerization
-- `pixi.toml` — Python dependencies
+- `pyproject.toml` — Python dependencies
 - `deployment.yaml` — Jinja-templated deployment configuration
 
 ---
@@ -91,7 +93,8 @@ This will re-apply the template, preserving your answers and customizations wher
    ```bash
    cd <destination-folder>
    ```
-2. Review and customize the generated files as needed.
+2. Review and customize the generated files as needed. You need to add `pv_mapping.yaml` file in the `src/online_model/configs/` directory
+   to map input and output PVs to model features. Refer to the `README.md` in your generated project for details on how to set this up.
 **Note that it is not recommended to change the template or source code to avoid complications when updating the template in the future,
 and to ensure consistency across deployments.**
 3. Test your deployment locally or in your target environment following the instructions in the generated `README.md`.
@@ -100,8 +103,8 @@ directory/repository a meaningful name related to your deployment, such as `snd-
 5. A GitHub Actions workflow is already configured for your repository. It will build and push your Docker image to 
 the GitHub Container Register under `slaclab` upon pushing to the `main` branch, and update the deployment file with the 
 latest image tag.
-6. For the initial deployment, you will need someone with access to the Kubernetes cluster to help set up the deployment.
-Once your project repo is set up, create a new issue in your repo and tag the team for assistance.
+6. For the initial deployment, you will need someone with access to the Kubernetes cluster to help set up the initial deployment 
+if you don't have vcluster access yet. Once your project repo is set up, create a new issue in your repo and tag the team for assistance.
 7. After the initial setup, you can obtain vcluster access and manage and update your deployment using `kubectl` commands.
 8. Update the deployment as needed using `copier update`. 
 
