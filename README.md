@@ -13,7 +13,7 @@ Kubernetes cluster, but can be adapted for other environments. It supports conti
 PVs, and optionally writing outputs back to EPICS PVs. It also supports MLflow for model versioning and tracking.
 
 <div align="center">
-  <img src="docs/assets/deployment-diagram.png" alt="Deployment Architecture" width="600"/>
+  <img src="docs/assets/mlops_inference_diagram.png" alt="MLOps Deployment Diagram" width="600"/>
 </div>
 
 > [!IMPORTANT]  
