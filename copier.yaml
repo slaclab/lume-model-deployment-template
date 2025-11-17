@@ -1,6 +1,10 @@
 registered_model_name:
     type: str
-    help: Name of the model as registered in the MLflow Model Registry, e.g. "lcls-fel-model".
+    help: Name of the model as registered in the MLflow Model Registry. Only use lowercase alphanumeric characters and hyphens, e.g. "lcls-fel-model".
+    validator: >-
+      {% if not (registered_model_name | regex_search("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")) %}
+      Name must start and end with a lowercase letter or digit, followed one or more letters, digits or hyphens all lowercase.
+      {% endif %}
 
 model_version:
     type: int
@@ -9,9 +13,13 @@ model_version:
 
 deployment_name:
     type: str
-    help: Name of the Kubernetes deployment (must be unique).
+    help: Name of the Kubernetes deployment (must be unique, and only in lowercase alphanumeric characters and hyphens).
     # todo: validation to check for uniqueness?
     default: "{{ registered_model_name }}-deployment"
+    validator: >-
+      {% if not (deployment_name | regex_search("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$")) %}
+      Name must start and end with a lowercase letter or digit, followed one or more letters, digits or hyphens all lowercase.
+      {% endif %}
 
 rate:
     type: float
@@ -28,7 +36,7 @@ rate:
 mlflow_tracking_uri:
     type: str
     help: The MLflow tracking URI to use. Choose one of the SLAC managed MLflow servers, or your own local server.
-    default: "http://127.0.0.1:8082"
+    default: "https://ard-mlflow.slac.stanford.edu/"
     choices:
         - "https://ard-mlflow.slac.stanford.edu/"
         - "http://127.0.0.1:8082"
@@ -67,12 +75,12 @@ interface:
         - k2eg
         - test
 
-cpu-gpu:
+device:
     type: str
     help: Deploy to CPU or GPU nodes.
-    default: "cpu"
+    default: cpu
     choices:
-        - "cpu"
+        - cpu
         #- "gpu"
 
 #command:

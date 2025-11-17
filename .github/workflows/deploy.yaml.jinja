@@ -19,6 +19,7 @@ jobs:
     env:
       IMAGE_NAME: {{registered_model_name}}
       REGISTRY: ghcr.io
+      {% raw %}
       REPO: ${{ github.repository_owner }}/${IMAGE_NAME}
     steps:
       - name: Set lower case repo owner and image name
@@ -69,3 +70,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git push origin HEAD:${{ github.ref }}
+        {% endraw %}
