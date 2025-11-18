@@ -176,12 +176,13 @@ docker run -it lume:test bash
 ```
 
 If you want to test with a local MLflow server, you can run in your terminal with MLflow installed and use whatever port
-is available (e.g., 8082): (see [docs](https://mlflow.org/docs/latest/getting-started/intro-quickstart/)):
+is available (e.g., 8082) (see [docs](https://mlflow.org/docs/latest/getting-started/intro-quickstart/)):
 ```bash 
 mlflow server --host 127.0.0.1 --port 8082 --gunicorn-opts --timeout=60
 ````
 
 Then edit the `template_config` to set `mlflow_tracking_uri="http://127.0.0.1:8082"`.
+
 ---
 
 For more details, see the [lume-model documentation](https://github.com/slaclab/lume-model) and the [Copier documentation](https://copier.readthedocs.io/).
