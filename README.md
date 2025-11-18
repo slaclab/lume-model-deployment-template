@@ -64,7 +64,7 @@ It should be something like `snd-nn-model-deployment` or `lcls-cu-inj-model-depl
 - **rate**: Inference rate in Hz. This is how often the model will run inference. Default is `1` (once per second).
 - **mlflow_tracking_uri**: The MLflow tracking server URI. This can be either the production server or a local server for testing.
 - **vcluster**: The name of the vcluster to deploy to. This should be either `ad-accel-online-ml` or `lcls-ml-online`.
-- **interface**: The interface to use for EPICS PV access. This should be either `epics`, `k2eg`, or `test`.
+- **interface**: The interface to use for EPICS PV access. This should be either `epics` (ChannelAccess only), `k2eg` (can define protocol), or `test`.
 - **device**: Whether to use `cpu` or `gpu` for model inference. Default is `cpu`.
 
 ### Updating an Existing Deployment

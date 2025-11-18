@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 PIXI_LOCKFILE_PATH = "/app/pixi.lock"  # Path to the pixi lockfile inside the container
 CONFIG_PATH = Path(__file__).parent / "configs" / "pv_mapping.yaml"
 # Get model version from environment variable, default to 1 if not set (test environment)
-model_version = os.environ.get("MODEL_VERSION", 1)
+model_version = os.environ.get("MODEL_VERSION", "1")
 
 
 class MultiLineDict(collections.UserDict):
