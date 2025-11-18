@@ -154,6 +154,18 @@ the GitHub Container Registry under `slaclab`. Once that's done, you can deploy 
 If ArgoCD is already set up, it will automatically deploy the new image.
 
 
+### 4. Check Your Deployment
+
+To check you deployment, you can go to your [MLflow experiment](https://ard-mlflow.slac.stanford.edu/#/experiments) to 
+see if the run is active with no errors, and you can plot the input/output variables under run -> model metrics.
+
+If you have access to the vcluster, you can use `kubectl` to check the pod name and then print the logs:
+```bash
+kubectl get pods
+kubectl logs -f <pod-name>
+````
+
+
 ## Optional Local Testing
 If you want to test the deployment locally before pushing to GitHub, you can build and run the Docker image locally.
 Make sure you either are on SLAC network or have access to the MLflow server you are using, and that you have Docker installed.
