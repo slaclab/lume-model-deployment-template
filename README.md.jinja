@@ -21,102 +21,11 @@ This will re-apply the template, preserving your answers and customizations wher
 
 ### 0. Register Your Model and Prepare PV Mapping
 Before using this template, ensure you have registered your model in MLflow and prepared the PV mapping for your deployment.
-
-#### Register the model
-Assuming you have a trained model wrapped in a LUME model class (e.g., `TorchModel`, `SklearnModel`, etc.), you can register it to MLflow as shown
-below. 
-
-Note that: 
-- **you must edit the metadata section for your specific model**
-- **you must have MLflow installed**
-- **you must be on the SLAC network to register to the SLAC MLflow registry**
-
-```python
-import mlflow
-from lume_model.models import TorchModel
-
-# load model from yaml
-model = TorchModel("model_config.yaml")
-
-## Editable Configuration 
-MLFLOW_URI = "https://ard-mlflow.slac.stanford.edu"
-EXPERIMENT_NAME = "lume-example-deployment"
-
-# Set MLflow tracking
-mlflow.set_tracking_uri(MLFLOW_URI)
-mlflow.set_experiment(EXPERIMENT_NAME)
-
-# Metadata - EDIT FOR EACH MODEL
-# Only use lowercase alphanumeric characters and hyphens!
-REGISTERED_MODEL_NAME = "lume-example-model"  
-
-EMAIL = "user@slac.stanford.edu"
-REPO = "https://github.com/slaclab/lume-example-model"
-BEAM_PATH = "cu_hxr"
-DESCRIPTION = "Example model"
-READY_TO_DEPLOY = "true"  # Set to "true" for production (sends to controls servers), "false" for dev
-STAGE = "production"  # development, staging, or production
-
-# Set tags
-model_tags = {
-    "email": EMAIL,
-    "repo": REPO,
-    "beam_path": BEAM_PATH,
-    "description": DESCRIPTION,
-    "stage": STAGE,
-}
-
-version_tags = {
-    "ready_to_deploy": READY_TO_DEPLOY,
-}
-
-# Register model
-model.register_to_mlflow(
-    artifact_path="model",
-    registered_model_name=REGISTERED_MODEL_NAME,
-    tags=model_tags,
-    version_tags=version_tags
-)
-```
-
-#### Generate PV Mapping
-
-You need to create a file called `pv_mapping.yaml` that defines how the EPICS PVs map to the model's input and
-output features. This file will later be copied into the template project.
-
-The structure of the `pv_mapping.yaml` file should look like this example:
-
-```yaml
-input_variables:
-  model_input_1:
-    symbols:
-      - INPUT:PV:1
-      - INPUT:PV:2
-    formula: (INPUT:PV:1**2 + INPUT:PV:2**2)**(1/2)
-    proto: ca
-  model_input_2:
-    formula: "1.850"  # constant value needs to match lume-model config exactly
-  model_input_3:
-    symbols:
-      - INPUT:PV:3
-    formula: INPUT:PV:3
-    proto: ca
-    ...
-output_variables:
-  OUTPUT:PV:1:
-    symbols: 
-      - model_output_1
-    formula: model_output_1 * 2.0 + 1.0
-    proto: pva
-    ...
-```
-
-Note that constants must be set correctly in your config; mismatches may cause validation errors.
+Please see the original template repository's [README](https://github.com/slaclab/lume-model-deployment-template/blob/main/README.md) for instructions on how to do this.
 
 > [!IMPORTANT]  
 > There is currently no validation implemented for this; user must ensure config matches the LUME-model and that the mapping
 is defined correctly.
-
 
 ### 1. Create a Deployment Repository
 

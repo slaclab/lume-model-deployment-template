@@ -37,9 +37,6 @@ mlflow_tracking_uri:
     type: str
     help: The MLflow tracking URI to use. Choose one of the SLAC managed MLflow servers, or your own local server.
     default: "https://ard-mlflow.slac.stanford.edu/"
-    choices:
-        - "https://ard-mlflow.slac.stanford.edu/"
-        - "http://127.0.0.1:8082"
     # TODO: add validation for uri format?
 
 #automatic_deployment:
@@ -57,14 +54,14 @@ mlflow_tracking_uri:
 #        - true
 #        - false
 
-vcluster:
-    type: str
-    help: The vcluster to deploy the model to.
-    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
-    default: ad-accel-online-ml
-    choices:
-        - ad-accel-online-ml
-        - lcls-ml-online
+#vcluster:
+#    type: str
+#    help: The vcluster to deploy the model to.
+#    when: "{{ mlflow_tracking_uri == 'https://ard-mlflow.slac.stanford.edu/' }}"
+#    default: ad-accel-online-ml
+#    choices:
+#        - ad-accel-online-ml
+#        - lcls-ml-online
 
 interface:
     type: str
