@@ -62,6 +62,12 @@ Once pushed, this will automatically trigger a GitHub Actions workflow to build 
 the GitHub Container Registry under `slaclab`. Once that's done, you can deploy to your target Kubernetes cluster.
 If ArgoCD is already set up, it will automatically deploy the new image.
 
+> [!CAUTION]
+> The image name is set as the registered model name. If the model has already been deployed before from another
+> repository under the same name, the image will already exist under the GitHub Container Registry for
+> `slaclab/<deployment_name>`. In this case, you will need to
+> either delete the existing image from the registry (after making sure it is no longer being used) or change
+> the registered name to a new unique name (e.g., if it's a new type of deployment).
 
 ### 4. Check Your Deployment
 
