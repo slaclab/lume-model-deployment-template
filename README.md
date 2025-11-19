@@ -215,7 +215,7 @@ improvements to the template repository!
 ## 1-2 months
 - [X] Add support for pre-model-evaluation PV transformations (e.g., formulas)
 - [ ] Add support for local model loading for models that are not in MLflow
-- [ ] Expand docs (how to upload models to MLflow and versioning/tagging requirements, how to set up MLflow locally 
+- [X] (Mostly done) Expand docs (how to upload models to MLflow and versioning/tagging requirements, how to set up MLflow locally 
 for testing, how to set up vcluster access, etc)
 - [X] Tutorial + demo for 1-2 use cases
 
