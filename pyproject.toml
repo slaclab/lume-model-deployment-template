@@ -15,10 +15,11 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "pyepics",
     "k2eg",
-    # mlflow on conda is at 3.2.0 but we probably need 3.4.x so can't install lume and mlflow from conda in pixi
+    # mlflow on conda is at 3.2.0 but we need 3.4.x so can't install lume and mlflow from conda in pixi
     "mlflow==3.4.*",
     "lume-model>=2.0",
     "sympy",
+    # add any extra dependencies here
 ]
 
 dynamic = ["version"]
