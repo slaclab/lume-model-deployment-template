@@ -4,6 +4,8 @@ metadata:
   name: {{deployment_name}}
   namespace: lume-online-ml
 spec:
+  strategy:
+    type: Recreate
   replicas: 1
   selector:
     matchLabels:
@@ -17,6 +19,7 @@ spec:
       - name: {{registered_model_name}}
         image: ghcr.io/slaclab/{{registered_model_name}}:test-{{model_version}}
         imagePullPolicy: Always
+        restartPolicy: Always
         resources:
           limits:
             memory: "2Gi"
