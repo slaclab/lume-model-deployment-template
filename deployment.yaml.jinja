@@ -27,15 +27,15 @@ spec:
               secretKeyRef:
                 name: epics-secrets
                 key: ca_addr_list
-          - name: K2EG_IP
-            valueFrom:
-              secretKeyRef:
-                name: k2eg-secrets
-                key: kafka_broker_url
-          - name: K2EG_TOPIC
-            valueFrom:
-              secretKeyRef:
-                name: k2eg-secrets
-                key: k2eg_cmd_topic
+          - name: K2EG_PYTHON_CONFIGURATION_PATH_FOLDER
+            value: /app/src/config
           - name: MODEL_VERSION
             value: "1"
+        volumeMounts:
+          - name: s3cmd-config-volume
+            mountPath: /app/src/config/lcls.ini
+            subPath: lcls.ini
+      volumes:
+        - name: s3cmd-config-volume
+          configMap:
+            name: k2eg-config-map

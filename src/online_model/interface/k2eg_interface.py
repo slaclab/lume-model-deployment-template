@@ -138,9 +138,7 @@ class K2EGInterface:
         if protos is None:
             protos = ["ca"] * len(output_dict)
         elif len(protos) != len(output_dict):
-            raise ValueError(
-                "Length of protos list must match length of output_dict."
-            )
+            raise ValueError("Length of protos list must match length of output_dict.")
 
         for (var, value), p in zip(output_dict.items(), protos):
             try:

@@ -19,16 +19,15 @@ RUN update-ca-certificates
 # run the `install` command (or any other). This will also install the dependencies into `/app/.pixi`
 RUN pixi install --environment $ENVIRONMENT
 # create the shell-hook bash script to activate the environment and run the inference script
-# if it fails, it will default to a bash shell for debugging
 RUN echo "#!/bin/bash" > /app/entrypoint.sh && \
-    if [ "$INTERFACE" = "k2eg" ]; then cat config/config_entrypoint.sh >> /app/entrypoint.sh; fi && \
     pixi shell-hook --environment $ENVIRONMENT -s bash >> /app/entrypoint.sh && \
     echo 'main() {' >> /app/entrypoint.sh && \
     echo '  python -m src.online_model.run --interface "$INTERFACE"' >> /app/entrypoint.sh && \
     echo '}' >> /app/entrypoint.sh && \
     echo 'main || {' >> /app/entrypoint.sh && \
     echo '  status=$?' >> /app/entrypoint.sh && \
-    echo '  echo "Main command failed with exit code $status. Dropping to shell for debugging."' >> /app/entrypoint.sh && \
+    echo '  echo "Main command failed with exit code $status."' >> /app/entrypoint.sh && \
+    #echo '  exit $status' >> /app/entrypoint.sh && \
     echo '  exec /bin/bash' >> /app/entrypoint.sh && \
     echo '}' >> /app/entrypoint.sh
 
