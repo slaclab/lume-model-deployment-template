@@ -177,7 +177,7 @@ This will re-apply the template, preserving your answers and customizations wher
 Main project files:
 - `README.md` — This file with instructions and information about the deployment
 - `src/online_model` — Source code for deployment logic and interfaces
-- `config/` — Configuration files for k2eg deployments
+- `config/` — Directory containing the configuration files for k2eg (injected into pod at runtime)
 - `Dockerfile.jinja` — Jinja-templated Dockerfile for containerization
 - `pyproject.toml` — Python dependencies
 - `deployment.yaml` — Jinja-templated deployment configuration
