@@ -99,4 +99,4 @@ _exclude:
   - "**/.git"
   - "**/.ruff_cache"
 
-_answers_file: .copier-answers.yaml
+_answers_file: .copier-answers.yml
