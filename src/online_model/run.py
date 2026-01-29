@@ -265,9 +265,15 @@ def main():
     else:
         output_pv_transformer = None
 
+    pv_list = None
+    if args.interface == "epics":
+        pv_list = input_pv_transformer.input_list.copy()
+        if output_pv_transformer is not None:
+            pv_list.extend(output_pv_transformer.output_list)
+
     interface = get_interface(
         args.interface,
-        input_pv_transformer.input_list if args.interface == "epics" else None,
+        pv_list
     )
 
     run_tags = {
