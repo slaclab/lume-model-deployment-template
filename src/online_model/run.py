@@ -225,12 +225,12 @@ def run_iteration(model, interface, input_pv_transformer, output_pv_transformer)
     -------
     None
     """
-    input_dict, max_posixseconds = get_model_inputs(
+    input_dict, input_dict_raw = get_model_inputs(
         model, interface, input_pv_transformer
     )
     output = evaluate_model(model, input_dict)
     write_output_and_log(
-        output, input_dict, max_posixseconds, interface, output_pv_transformer
+        output, input_dict, input_dict_raw, interface, output_pv_transformer
     )
 
 
