@@ -72,13 +72,13 @@ def get_model_inputs(model, interface, input_pv_transformer):
     -------
     input_dict : dict
         The dictionary of input values for the model.
-    max_posixseconds : int or None
-        The maximum posixseconds timestamp from inputs, if applicable.
+    input_dict_raw : dict or None
+        The raw PV data including timestamps, if applicable (for EPICS/K2EG interfaces).
     """
     if interface.name == "test":
         # Get random input variable (within the ranges) from the interface
         input_dict = interface.get_input_variables(model.input_variables)
-        max_posixseconds = None
+        input_dict_raw = None
 
     elif interface.name in ("epics", "k2eg"):
         # Get the values of input variables PVs from the interface
@@ -87,8 +87,6 @@ def get_model_inputs(model, interface, input_pv_transformer):
             args["protos"] = input_pv_transformer.proto_list
         input_dict_raw = interface.get_input_variables(**args)
 
-        # Save the latest timestamp from EPICS PVs for logging
-        max_posixseconds = int(max(d["posixseconds"] for d in input_dict_raw.values()))
         logger.debug(f"Raw input values from EPICS: {MultiLineDict(input_dict_raw)}")
 
         # Get model inputs from PV inputs based on formulas defined in pv_mapping.yaml
@@ -101,7 +99,7 @@ def get_model_inputs(model, interface, input_pv_transformer):
         raise ValueError(f"Unknown interface: {interface.name}")
 
     logger.debug("Input values: %s", MultiLineDict(input_dict))
-    return input_dict, max_posixseconds
+    return input_dict, input_dict_raw
 
 
 def evaluate_model(model, input_dict):
@@ -130,7 +128,7 @@ def evaluate_model(model, input_dict):
 
 
 def write_output_and_log(
-    output, input_dict, max_posixseconds, interface, output_pv_transformer
+    output, input_dict, input_dict_raw, interface, output_pv_transformer
 ):
     """
     Step 3: Write output to PVs if applicable and log metrics to MLflow.
@@ -142,8 +140,8 @@ def write_output_and_log(
         The dictionary of output values from the model.
     input_dict : dict
         The dictionary of input values for the model.
-    max_posixseconds : int or None
-        The maximum posixseconds timestamp from inputs, if applicable.
+    input_dict_raw : dict or None
+        The raw PV data including timestamps, if applicable.
     interface : Interface
         The interface instance (TestInterface, EPICSInterface, or K2EGInterface).
     output_pv_transformer : OutputPVTransformer
@@ -176,16 +174,31 @@ def write_output_and_log(
         logger.info("No PV writing for test interface.")
         pass
 
-    # TODO: add epics timestamp to DB as well, and log all to wall clock time
-    # Writing model outputs to MLflow (not outputs mapped to PVs)
+    # Add epics timestamp to DB as well, and log all to wall clock time
+    wall_clock_timestamp_ms = int(time.time()*1000)
+    metrics_to_log = {}
+
+    # Add input PVs with their EPICS timestamps (if available)
+    if input_dict_raw is not None and interface.name in ("epics", "k2eg"):
+        for pv_name, data in input_dict_raw.items():
+            # Log PV value
+            metrics_to_log[pv_name] = float(data['value'])
+            # Log EPICS timestamp
+            metrics_to_log[f"{pv_name}_epics_ts"] = float(data['posixseconds'])
+    else:
+        # For test interface
+        metrics_to_log.update(input_dict)
+
+
+    # Add model outputs
+    metrics_to_log.update(output)
+
     mlflow.log_metrics(
-        input_dict | output,
-        timestamp=(
-            max_posixseconds * 1000
-            if max_posixseconds and interface.name in ("epics", "k2eg")
-            else None
-        ),
+        metrics_to_log,
+        timestamp=wall_clock_timestamp_ms,
     )
+
+   
     logger.info("Wrote input and output metrics to MLflow.")
 
 
