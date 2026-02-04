@@ -69,7 +69,7 @@ class InferenceClient:
         Returns:
             Prediction response with outputs
         """
-        response = self.session.post(
+        response = requests.post(
             f"{self.base_url}/predict",
             json={"inputs": inputs},
             timeout=self.timeout

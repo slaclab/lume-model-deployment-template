@@ -231,7 +231,7 @@ def run_iteration(inference_client, interface, input_pv_transformer, output_pv_t
     None
     """
     input_dict, input_dict_raw = get_model_inputs(
-        model, interface, input_pv_transformer
+        interface, input_pv_transformer
     )
     output = evaluate_model_remote(inference_client, input_dict)
     write_output_and_log(
