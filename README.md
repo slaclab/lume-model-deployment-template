@@ -46,8 +46,7 @@ pip install copier
 
 ### Before Creating a Deployment Project
 You need to register your model in MLflow and prepare the PV mapping for your deployment.
-Additionally, The inference service url for the model should be ready before generating the template and it should be deployed in the same namespace. 
-Instructions for deploying inference service can be found [here](https://github.com/slaclab/inference-service/tree/main).
+
 
 #### Register the model
 Assuming you have a trained model wrapped in a LUME model class (e.g., `TorchModel`, etc.), you can register it to MLflow as shown
@@ -145,6 +144,16 @@ Note that constants must be set correctly in your config; mismatches may cause v
 is defined correctly.
 
 ---
+
+#### Deploy inference service 
+The ML model is now separate from this deployment and runs in its own inference service.
+To get the url of the inference service to put in the template, log into the vcluster and run 
+
+```
+kubectl get svc -n lume-online-ml
+```
+The inference service url for the model should be ready before generating the template and it should be deployed in the same namespace. 
+If the inference service is not available, follow the instructions [here](https://github.com/slaclab/inference-service/tree/main).
 
 ## Using the Template
 First make sure `copier` is installed in your Python environment.
