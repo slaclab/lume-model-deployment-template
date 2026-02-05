@@ -34,6 +34,8 @@ spec:
             value: /app/src/config
           - name: MODEL_VERSION
             value: "1"
+          - name: INFERENCE_SERVICE_URL
+            value: "{{ inference_service_url }}"
         volumeMounts:
           - name: s3cmd-config-volume
             mountPath: /app/src/config/lcls.ini

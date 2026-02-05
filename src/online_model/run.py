@@ -16,6 +16,9 @@ from online_model.transformers.transformer import (
     OutputPVTransformer,
 )
 import os
+import random
+
+from online_model.client import InferenceClient
 
 
 logging.basicConfig(
@@ -30,6 +33,7 @@ PIXI_LOCKFILE_PATH = "/app/pixi.lock"  # Path to the pixi lockfile inside the co
 CONFIG_PATH = Path(__file__).parent / "configs" / "pv_mapping.yaml"
 # Get model version from environment variable, default to 1 if not set (test environment)
 model_version = os.environ.get("MODEL_VERSION", "1")
+INFERENCE_SERVICE_URL = os.environ.get("INFERENCE_SERVICE_URL", "http://inference-service:8000")
 
 
 class MultiLineDict(collections.UserDict):
@@ -54,19 +58,20 @@ def get_interface(interface_name, pvname_list=None):
         raise ValueError(f"Unknown interface: {interface_name}")
 
 
-def get_model_inputs(model, interface, input_pv_transformer):
+def get_model_inputs(interface, input_pv_transformer, inference_client=None):
     """
     Step 1: Retrieve and transform inputs for the model based on the interface.
     Handles test, epics, and k2eg interfaces, including timestamp extraction and logging.
 
     Parameters
     ----------
-    model : LUMEBaseModel
-        The lume-model wrapped model instance to evaluate.
     interface : Interface
          The interface instance (TestInterface, EPICSInterface, or K2EGInterface) for input retrieval.
     input_pv_transformer : InputPVTransformer
         The transformer to map and transform input PVs to model inputs.
+    inference_client : InferenceClient, optional
+        Client for the inference service. Required for test interface to retrieve
+        input specifications.
 
     Returns
     -------
@@ -76,8 +81,35 @@ def get_model_inputs(model, interface, input_pv_transformer):
         The raw PV data including timestamps, if applicable (for EPICS/K2EG interfaces).
     """
     if interface.name == "test":
-        # Get random input variable (within the ranges) from the interface
-        input_dict = interface.get_input_variables(model.input_variables)
+        if inference_client is None:
+            raise ValueError(
+               "inference_client is required for test interface. "
+                "Pass the InferenceClient instance to get_model_inputs()." 
+            )
+        # Get input specifications from inference service 
+        inputs_info = inference_client.get_inputs()
+
+        # Generate random inputs within valid ranges
+        input_dict = {}
+        for name in inputs_info['input_names']:
+            var_info = inputs_info['input_variables'][name]
+            
+            # Use range if available, otherwise use default
+            if var_info.get('range') is not None:
+                min_val, max_val = var_info['range']
+                input_dict[name] = random.uniform(min_val, max_val)
+            elif var_info.get('default') is not None:
+                # If no range but has default, use default +- 10%
+                default = var_info['default']
+                if default != 0:
+                    input_dict[name] = random.uniform(default * 0.9, default * 1.1)
+                else:
+                    input_dict[name] = random.uniform(-1.0, 1.0)
+            else:
+                # Fallback: random value between -1 and 1
+                input_dict[name] = random.uniform(-1.0, 1.0)
+        
+        logger.debug(f"Generated test inputs: {MultiLineDict(input_dict)}")
         input_dict_raw = None
 
     elif interface.name in ("epics", "k2eg"):
@@ -102,15 +134,15 @@ def get_model_inputs(model, interface, input_pv_transformer):
     return input_dict, input_dict_raw
 
 
-def evaluate_model(model, input_dict):
+def evaluate_model_remote(inference_client, input_dict):
     """
     Step 2: Evaluate the model with the given inputs.
     Sets input validation config and runs model.evaluate.
 
     Parameters
     ----------
-    model : LUMEBaseModel
-        The lume-model wrapped model instance to evaluate.
+    inference_client : InferenceClient
+        Client for calling the inference service.
     input_dict : dict
         The dictionary of input values for the model.
 
@@ -119,12 +151,15 @@ def evaluate_model(model, input_dict):
     output : dict
         The dictionary of output values from the model.
     """
-    # Set custom input validation to warn on all inputs
-    # TODO: make this optional? or a config? for now, just warn on all inputs
-    model.input_validation_config = {k: "warn" for k in model.input_names}
-    output = model.evaluate(input_dict)
-    logger.debug("Model output values: %s", MultiLineDict(output))
-    return output
+    try:
+        logger.debug(f"Calling inference service with inputs: {MultiLineDict(input_dict)}")
+        prediction = inference_client.predict(input_dict)
+        output = prediction['outputs']
+        logger.debug(f"Model output values: {MultiLineDict(output)}")
+        return output 
+    except Exception as e:
+        logger.error(f"Remote inference failed: {e}")
+        raise
 
 
 def write_output_and_log(
@@ -202,7 +237,7 @@ def write_output_and_log(
     logger.info("Wrote input and output metrics to MLflow.")
 
 
-def run_iteration(model, interface, input_pv_transformer, output_pv_transformer):
+def run_iteration(inference_client, interface, input_pv_transformer, output_pv_transformer):
     """
     Orchestrates a single iteration of the model evaluation using the specified interface.
     Step 1: Input retrieval and transformation
@@ -211,8 +246,8 @@ def run_iteration(model, interface, input_pv_transformer, output_pv_transformer)
 
     Parameters
     ----------
-    model : LUMEBaseModel
-        The lume-model wrapped model instance to evaluate.
+    inference_client : InferenceClient
+        Client for calling the remote inference service.
     interface : Interface
         The interface instance (TestInterface, EPICSInterface, or K2EGInterface) for
         input retrieval.
@@ -226,9 +261,9 @@ def run_iteration(model, interface, input_pv_transformer, output_pv_transformer)
     None
     """
     input_dict, input_dict_raw = get_model_inputs(
-        model, interface, input_pv_transformer
+        interface, input_pv_transformer, inference_client
     )
-    output = evaluate_model(model, input_dict)
+    output = evaluate_model_remote(inference_client, input_dict)
     write_output_and_log(
         output, input_dict, input_dict_raw, interface, output_pv_transformer
     )
@@ -260,10 +295,25 @@ def main():
         help="Interface to use",
     )
     args = parser.parse_args()
-    logger.info("Running with interface: %s", args.interface)
+    logger.info("Starting I/O Service with Remote Inference")
+    logger.info(f"Interface: {args.interface}")
+    logger.info(f"Inference Service URL: {INFERENCE_SERVICE_URL}")
 
-    # Load the model from MLflow Model Registry
-    model = MLflowModelGetter(registered_model_name, model_version).get_model()
+    # Initialize inference client 
+    inference_client = InferenceClient(INFERENCE_SERVICE_URL)
+    
+    # Verify connection to inference service
+    logger.info("Connecting to inference service...")
+    if not inference_client.health_check():
+        logger.error("Inference service is not healthy! Check whether service is running in the correct namespace")
+        sys.exit(1)
+    
+    # Get model info from inference service
+    model_info = inference_client.get_model_info()
+    logger.info(" Connected to inference service")
+    logger.info(f"  Model: {model_info['model_name']} v{model_info['model_version']}")
+    logger.info(f"  Inputs: {len(model_info['input_names'])} variables")
+    logger.info(f"  Outputs: {len(model_info['output_names'])} variables")
 
     # Set up PV transformer
     # This is required to map from EPICS PV names to model input names, and apply any formulas
@@ -307,7 +357,7 @@ def main():
         while True:
             try:
                 run_iteration(
-                    model, interface, input_pv_transformer, output_pv_transformer
+                    inference_client, interface, input_pv_transformer, output_pv_transformer
                 )
                 time.sleep(rate)
             except KeyboardInterrupt:
