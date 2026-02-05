@@ -46,6 +46,8 @@ pip install copier
 
 ### Before Creating a Deployment Project
 You need to register your model in MLflow and prepare the PV mapping for your deployment.
+Additionally, inference service for the model should be deployed in the same namespace. 
+Instructions for deploying inference service can be found [here](https://github.com/slaclab/inference-service/tree/main)
 
 #### Register the model
 Assuming you have a trained model wrapped in a LUME model class (e.g., `TorchModel`, etc.), you can register it to MLflow as shown
