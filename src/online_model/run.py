@@ -275,7 +275,7 @@ def main():
     # Verify connection to inference service
     logger.info("Connecting to inference service...")
     if not inference_client.health_check():
-        logger.error("Inference service is not healthy!")
+        logger.error("Inference service is not healthy! Check whether service is running in the correct namespace")
         sys.exit(1)
     
     # Get model info from inference service

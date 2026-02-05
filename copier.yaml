@@ -11,6 +11,11 @@ model_version:
     help: Version of the model as registered in the MLflow Model Registry.
     default: 1
 
+inference_service_url:
+  type: str
+  help: Model inference service url
+  default: http://inference-service:8000
+
 deployment_name:
     type: str
     help: Name of the Kubernetes deployment (must be unique, and only in lowercase alphanumeric characters and hyphens).
