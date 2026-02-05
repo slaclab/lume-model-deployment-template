@@ -16,6 +16,7 @@ from online_model.transformers.transformer import (
     OutputPVTransformer,
 )
 import os
+import random
 
 from online_model.client import InferenceClient
 
@@ -57,7 +58,7 @@ def get_interface(interface_name, pvname_list=None):
         raise ValueError(f"Unknown interface: {interface_name}")
 
 
-def get_model_inputs(interface, input_pv_transformer):
+def get_model_inputs(interface, input_pv_transformer, inference_client=None):
     """
     Step 1: Retrieve and transform inputs for the model based on the interface.
     Handles test, epics, and k2eg interfaces, including timestamp extraction and logging.
@@ -68,6 +69,9 @@ def get_model_inputs(interface, input_pv_transformer):
          The interface instance (TestInterface, EPICSInterface, or K2EGInterface) for input retrieval.
     input_pv_transformer : InputPVTransformer
         The transformer to map and transform input PVs to model inputs.
+    inference_client : InferenceClient, optional
+        Client for the inference service. Required for test interface to retrieve
+        input specifications.
 
     Returns
     -------
@@ -77,10 +81,36 @@ def get_model_inputs(interface, input_pv_transformer):
         The raw PV data including timestamps, if applicable (for EPICS/K2EG interfaces).
     """
     if interface.name == "test":
-        # TODO How to handle this since we don't have model object anymore 
-        raise NotImplementedError(
-            "Test interface not supported with remote inference. Use k2eg or pyepics."
-        )
+        if inference_client is None:
+            raise ValueError(
+               "inference_client is required for test interface. "
+                "Pass the InferenceClient instance to get_model_inputs()." 
+            )
+        # Get input specifications from inference service 
+        inputs_info = inference_client.get_inputs()
+
+        # Generate random inputs within valid ranges
+        input_dict = {}
+        for name in inputs_info['input_names']:
+            var_info = inputs_info['input_variables'][name]
+            
+            # Use range if available, otherwise use default
+            if var_info.get('range') is not None:
+                min_val, max_val = var_info['range']
+                input_dict[name] = random.uniform(min_val, max_val)
+            elif var_info.get('default') is not None:
+                # If no range but has default, use default +- 10%
+                default = var_info['default']
+                if default != 0:
+                    input_dict[name] = random.uniform(default * 0.9, default * 1.1)
+                else:
+                    input_dict[name] = random.uniform(-1.0, 1.0)
+            else:
+                # Fallback: random value between -1 and 1
+                input_dict[name] = random.uniform(-1.0, 1.0)
+        
+        logger.debug(f"Generated test inputs: {MultiLineDict(input_dict)}")
+        input_dict_raw = None
 
     elif interface.name in ("epics", "k2eg"):
         # Get the values of input variables PVs from the interface
@@ -231,7 +261,7 @@ def run_iteration(inference_client, interface, input_pv_transformer, output_pv_t
     None
     """
     input_dict, input_dict_raw = get_model_inputs(
-        interface, input_pv_transformer
+        interface, input_pv_transformer, inference_client
     )
     output = evaluate_model_remote(inference_client, input_dict)
     write_output_and_log(
