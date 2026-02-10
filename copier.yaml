@@ -31,6 +31,11 @@ gateway_ip:
   help: Gateway IP for multus system
   when: "{{ use_static_ip }}"
 
+github_creds_secret:
+  type: str
+  help: Github credentials secret for private/internal repositories 
+  when: "{{ use_static_ip }}"
+
 deployment_name:
     type: str
     help: Name of the Kubernetes deployment (must be unique, and only in lowercase alphanumeric characters and hyphens).
