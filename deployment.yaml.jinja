@@ -30,6 +30,8 @@ spec:
       - name: {{registered_model_name}}
         image: ghcr.io/slaclab/{{registered_model_name}}:test-{{model_version}}
         imagePullPolicy: Always
+        imagePullSecrets:
+        - name: gh-regcred
         restartPolicy: Always
         resources:
           limits:
