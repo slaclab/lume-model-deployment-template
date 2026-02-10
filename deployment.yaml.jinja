@@ -12,15 +12,17 @@ spec:
       app: {{registered_model_name}}
   template:
     metadata:
+    {%- if use_static_ip %}
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
           {
-            "name": "sdf-ad-ingest-static",
+            "name": "sdf-ad-ingest",
             "namespace": "multus-system",
             "ips": [ "{{fixed_ip}}/24" ],
-            "gateway": [ "172.24.8.1" ]
+            "gateway": [ "{{gateway_ip}}" ]
           }
         ]'
+    {%- endif %}
       labels:
         app: {{registered_model_name}}
     spec:
