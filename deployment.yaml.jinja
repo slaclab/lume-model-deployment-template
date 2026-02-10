@@ -12,9 +12,24 @@ spec:
       app: {{registered_model_name}}
   template:
     metadata:
+    {%- if use_static_ip %}
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[
+          {
+            "name": "sdf-ad-ingest",
+            "namespace": "multus-system",
+            "ips": [ "{{fixed_ip}}/24" ],
+            "gateway": [ "{{gateway_ip}}" ]
+          }
+        ]'
+    {%- endif %}
       labels:
         app: {{registered_model_name}}
     spec:
+      {%- if use_static_ip %}
+      imagePullSecrets:
+      - name: {{ github_creds_secret }}
+      {%- endif %}
       containers:
       - name: {{registered_model_name}}
         image: ghcr.io/slaclab/{{registered_model_name}}:test-{{model_version}}

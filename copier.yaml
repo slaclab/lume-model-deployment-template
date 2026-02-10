@@ -16,6 +16,26 @@ inference_service_url:
   help: Model inference service url
   default: http://inference-service:8000
 
+use_static_ip:
+  type: bool
+  help: Do you want to configure a static IP for the deployment pod?
+  default: false
+
+fixed_ip:
+  type: str
+  help: Static IP for the pod 
+  when: "{{ use_static_ip }}"
+
+gateway_ip:
+  type: str
+  help: Gateway IP for multus system
+  when: "{{ use_static_ip }}"
+
+github_creds_secret:
+  type: str
+  help: Github credentials secret for private/internal repositories 
+  when: "{{ use_static_ip }}"
+
 deployment_name:
     type: str
     help: Name of the Kubernetes deployment (must be unique, and only in lowercase alphanumeric characters and hyphens).
