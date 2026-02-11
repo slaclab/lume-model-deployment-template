@@ -3,6 +3,17 @@ kind: Deployment
 metadata:
   name: {{deployment_name}}
   namespace: lume-online-ml
+  {%- if use_static_ip %}
+  annotations:
+        k8s.v1.cni.cncf.io/networks: '[
+          {
+            "name": "sdf-ad-ingest",
+            "namespace": "multus-system",
+            "ips": [ "{{fixed_ip}}/24" ],
+            "gateway": [ "{{gateway_ip}}" ]
+          }
+        ]'
+  {%- endif %}
 spec:
   strategy:
     type: Recreate
@@ -12,17 +23,6 @@ spec:
       app: {{registered_model_name}}
   template:
     metadata:
-    {%- if use_static_ip %}
-      annotations:
-        k8s.v1.cni.cncf.io/networks: '[
-          {
-            "name": "sdf-ad-ingest",
-            "namespace": "multus-system",
-            "ips": [ "{{fixed_ip}}/24" ],
-            "gateway": [ "{{gateway_ip}}" ]
-          }
-        ]'
-    {%- endif %}
       labels:
         app: {{registered_model_name}}
     spec:
