@@ -3,6 +3,17 @@ kind: Deployment
 metadata:
   name: {{deployment_name}}
   namespace: lume-online-ml
+  {%- if use_static_ip %}
+  annotations:
+        k8s.v1.cni.cncf.io/networks: '[
+          {
+            "name": "sdf-ad-ingest",
+            "namespace": "multus-system",
+            "ips": [ "{{fixed_ip}}/24" ],
+            "gateway": [ "{{gateway_ip}}" ]
+          }
+        ]'
+  {%- endif %}
 spec:
   strategy:
     type: Recreate
@@ -12,21 +23,22 @@ spec:
       app: {{registered_model_name}}
   template:
     metadata:
-    {%- if use_static_ip %}
-      annotations:
-        k8s.v1.cni.cncf.io/networks: '[
-          {
-            "name": "sdf-ad-ingest",
-            "namespace": "multus-system",
-            "ips": [ "{{fixed_ip}}/24" ],
-            "gateway": [ "{{gateway_ip}}" ]
-          }
-        ]'
-    {%- endif %}
       labels:
         app: {{registered_model_name}}
     spec:
       {%- if use_static_ip %}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoreDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: edu.stanford.slac.sdf.k8s.networking.multus
+                operator: In  
+                values:
+                - enable
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/ext-load-balancer
       imagePullSecrets:
       - name: {{ github_creds_secret }}
       {%- endif %}
