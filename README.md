@@ -156,7 +156,7 @@ The inference service url for the model should be ready before generating the te
 If the inference service is not available, follow the instructions [here](https://github.com/slaclab/inference-service/tree/main).
 
 ###  Assigning static IP to the deployment
-For SLAC's control system, to be able to write model output predictions to Process Variables (PVs) from the deployment pod, the pod IP needs to be added to a whitelist. To add a fixed IP to our deployment, we have added few annotations in the deployment yaml to ensure pod takes the fixed IP associated with multus system. These annotations are completely optional and the user can choose to opt out when prompted for configuration values while using the copier template. 
+For SLAC's control system, to be able to write model output predictions to Process Variables (PVs) from the deployment pod, the pod IP needs to be added to a whitelist. To add a fixed IP to our deployment, we have added few annotations in the deployment yaml to ensure pod takes the fixed IP associated with multus system. These annotations are completely optional and the user can choose to opt out when prompted for configuration values while using the copier template. The fixed IP needs to be requested from IT for the vlcuster you are intending to deploy in. 
 
 Additionally, since these IPs cannot be uploaded to a public repository, we have made our deployments internal to our Github organization and hence, a secret is required with Github credentials in the same namespace so that the Docker image can be pulled from the repo and deployed.
 
