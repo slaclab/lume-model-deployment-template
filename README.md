@@ -155,6 +155,19 @@ kubectl get svc -n lume-online-ml
 The inference service url for the model should be ready before generating the template and it should be deployed in the same namespace. 
 If the inference service is not available, follow the instructions [here](https://github.com/slaclab/inference-service/tree/main).
 
+###  Assigning static IP to the deployment
+For SLAC's control system, to be able to write model output predictions to Process Variables (PVs) from the deployment pod, the pod IP needs to be added to a whitelist. To add a fixed IP to our deployment, we have added few annotations in the deployment yaml to ensure pod takes the fixed IP associated with multus system. These annotations are completely optional and the user can choose to opt out when prompted for configuration values while using the copier template. 
+
+Additionally, since these IPs cannot be uploaded to a public repository, we have made our deployments internal to our Github organization and hence, a secret is required with Github credentials in the same namespace so that the Docker image can be pulled from the repo and deployed.
+
+```
+kubectl create secret docker-registry gh-regcred \
+    --docker-server=ghcr.io \
+    --docker-username=<YOUR_GITHUB_USERNAME> \
+    --docker-password=<YOUR_PAT> \
+    --docker-email=<YOUR_GITHUB_EMAIL>
+```
+
 ## Using the Template
 First make sure `copier` is installed in your Python environment.
 To generate a new deployment project, create a new folder for the project. We recommend giving your 
@@ -167,6 +180,8 @@ following information ready:
 - **registered_model_name**: Name of the model as registered in the MLflow Model Registry. This should be something 
 like `xcs-nn-surrogate` or `lcls-cu-inj-model`, using all lowercase letters, numbers and hyphens.
 - **model_version**: Version of the model as registered in the MLflow Model Registry. This should be an integer, e.g., `1`.
+- **inference_service_url**: URL of the inference service for the model. This must be deployed in the same namespace that you are deploying to which is `lume-online-ml`. This will be a url e.g., `http://inference-service:8000`
+- **Do you want to configure a static IP for the deployment**: If yes, you have to provide the fixed IP and gateway IP that will be assigned to the pod along with Github Repo credentials for pulling images from an internal/private repo. This can be skipped by selecting No. 
 - **deployment_name**: Name of the Kubernetes deployment. This must be unique within the Kubernetes namespace you are deploying to.
 It should be something like `xcs-nn-surrogate-deployment` or `lcls-cu-inj-model-deployment`, using all lowercase letters, numbers and hyphens.
 **Note that all deployments will be in the same namespace, `lume-online-ml`, so choose unique names.**
