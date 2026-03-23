@@ -1,6 +1,6 @@
 import logging
-from time import time
-
+import time
+import sys
 import k2eg
 from k2eg.serialization import Scalar
 
@@ -117,43 +117,40 @@ class K2EGInterface:
         """
         
 
-        if protos is None:
-            protos = ["ca"] * len(input_pvs)
-        elif len(protos) != len(input_pvs):
-            raise ValueError(
-                "Length of protos list must match length of input_pvs list."
-            )
-        last_error = None 
+        def _all_pvs(protos):
+            """get pvs with consistent timestamps"""
+            for var, proto in zip(input_pvs, protos):
+                if (rv := _pv(var, proto)) is None:
+                    return
+                yield var, dict(value=rv["value"], posixseconds=rv["timeStamp"]["secondsPastEpoch"])
 
-        for attempt in range(max_retries):
-            input_dict = {}
+        def _protos():
+            if protos is None:
+                return ["ca"] * len(input_pvs)
+            if len(protos) != len(input_pvs):
+                raise ValueError(
+                    f"Length of protos list={len(protos)} must match length of input_pvs list={len(input_pvs)}"
+                )
+            return protos
+
+        def _pv(var, proto):
             try:
-                # Try to get all PVs in one loop for consistent timestamps 
-                for var, proto in zip(input_pvs, protos):
-                    k2eg_dict = self.get_pv(var, proto=proto)
-                    input_dict[var] = {
-                        "value": k2eg_dict["value"],
-                        "posixseconds": k2eg_dict["timeStamp"]["secondsPastEpoch"],
-                    }
-                # If we successfully retrieved all PVs, return the input_dict
-                if attempt > 0:
-                    logging.info(f"Successfully retrieved PVs on attempt {attempt + 1}")
-                return input_dict
-            
+                return self.get_pv(var, proto=proto)
             except Exception as e:
-                last_error = e
-                if attempt < max_retries - 1:
-                    logging.warning(
-                        f"Transient failure getting input variables (attempt {attempt + 1}/{max_retries}): {e}. Retrying..."
-                    )
-                    time.sleep(retry_delay)
-                else:
-                    logging.error(
-                        f"Failed to get input variables after {max_retries} attempts: {e}"
-                    )
-        # All attempts failed, raise an exception with the last error message
-        raise RuntimeError(f"Failed to get input variables after {max_retries} attempts. Last error: {last_error}")
-
+                return None
+        
+        def _try_pvs(protos):
+            m = len(input_pvs)
+            for _ in range(max_retries):
+                rv = tuple(_all_pvs(protos))
+                if len(rv) == m:
+                    return rv
+                e = f"only got len(pvs)={len(rv)} out of expect={m}"
+                logging.warning(e)
+                time.sleep(retry_delay)
+            raise RuntimeError(e)
+        
+        return dict(_try_pvs(_protos()))
 
     def put_output_variables(self, output_dict: dict, protos: list = None, max_retries: int = 2, retry_delay: float = 0.1):
         """
