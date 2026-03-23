@@ -19,6 +19,8 @@ import os
 import random
 
 from online_model.client import InferenceClient
+from exceptions import OutputWriteFailure
+
 
 
 logging.basicConfig(
@@ -237,12 +239,15 @@ def write_output_and_log(
     logger.info("Wrote input and output metrics to MLflow.")
 
 
-def run_iteration(inference_client, interface, input_pv_transformer, output_pv_transformer):
+def run_iteration(inference_client, interface, input_pv_transformer, output_pv_transformer, max_iteration_retries: int = 10,  iteration_retry_delay: float = 30):
     """
     Orchestrates a single iteration of the model evaluation using the specified interface.
     Step 1: Input retrieval and transformation
     Step 2: Model evaluation
     Step 3: Output writing and logging
+
+    If output writing fails, retries the entire iteration with fresh inputs to ensure
+    outputs are not stale relative to inputs.
 
     Parameters
     ----------
@@ -255,18 +260,53 @@ def run_iteration(inference_client, interface, input_pv_transformer, output_pv_t
         The transformer to map and transform input PVs to model inputs.
     output_pv_transformer : OutputPVTransformer
         The transformer to map and transform model outputs to output PVs.
+    max_iteration_retries : int, optional
+        Maximum number of times to retry the entire iteration if outputs fail (default is 10).
+    iteration_retry_delay : float, optional
+        Delay in seconds before restarting iteration (default is 30).
 
     Returns
     -------
     None
     """
-    input_dict, input_dict_raw = get_model_inputs(
-        interface, input_pv_transformer, inference_client
-    )
-    output = evaluate_model_remote(inference_client, input_dict)
-    write_output_and_log(
-        output, input_dict, input_dict_raw, interface, output_pv_transformer
-    )
+    for iteration_attempt in range(max_iteration_retries):
+        try:
+            # Step 1: Get inputs (will keep retrying internally until successful)
+            if iteration_attempt > 0:
+                logger.info(f"Restarting iteration with fresh inputs (attempt {iteration_attempt + 1}/{max_iteration_retries})...")
+            
+            input_dict, input_dict_raw = get_model_inputs(
+                interface, input_pv_transformer, inference_client
+            )
+            
+            # Step 2: Evaluate model
+            output = evaluate_model_remote(inference_client, input_dict)
+            
+            # Step 3: Write outputs (will retry 3 times, then raise OutputWriteFailure)
+            write_output_and_log(
+                output, input_dict, input_dict_raw, interface, output_pv_transformer
+            )
+            
+            # Success - log if it wasn't the first attempt
+            if iteration_attempt > 0:
+                logger.info(f"Iteration completed successfully on attempt {iteration_attempt + 1}")
+            return
+            
+        except OutputWriteFailure as e:
+            # Output write failed after retries - need fresh inputs
+            if iteration_attempt < max_iteration_retries - 1:
+                logger.warning(
+                    f"Output write failed (iteration attempt {iteration_attempt + 1}/{max_iteration_retries}): {e}. "
+                    f"Restarting with fresh inputs in {iteration_retry_delay}s..."
+                )
+                time.sleep(iteration_retry_delay)
+                continue  # Restart iteration from the beginning with fresh inputs
+            else:
+                # All iteration attempts exhausted
+                logger.error(
+                    f"Iteration failed after {max_iteration_retries} attempts with fresh inputs: {e}"
+                )
+                raise  # Re-raise to main loop
 
 
 def main():
@@ -357,13 +397,20 @@ def main():
         while True:
             try:
                 run_iteration(
-                    inference_client, interface, input_pv_transformer, output_pv_transformer
+                    inference_client, interface, input_pv_transformer, output_pv_transformer,  max_iteration_retries=10, iteration_retry_delay=30
                 )
                 time.sleep(rate)
             except KeyboardInterrupt:
                 logger.info("Keyboard interrupt received. Exiting.")
                 break
+            except OutputWriteFailure as e:
+            # Iteration failed even after retries with fresh inputs
+            # Log and move to next iteration
+                logger.error(f"Iteration completely failed: {e}. Moving to next iteration cycle.")
+                time.sleep(rate)
+                continue
             except Exception as e:
+                logger.error(f"Unexpected error: {e}", exc_info=True)
                 raise e
 
 

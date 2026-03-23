@@ -3,6 +3,7 @@ import time
 import sys
 import k2eg
 from k2eg.serialization import Scalar
+from exceptions import OutputWriteFailure
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -95,7 +96,7 @@ class K2EGInterface:
 
         self.k2eg_client.put(proto + "://" + pv_name, serialized_value, timeout)
 
-    def get_input_variables(self, input_pvs: list, protos: list[str] = None, max_retries: int = 3, retry_delay: float = 0.15) -> dict:
+    def get_input_variables(self, input_pvs: list, protos: list[str] = None, retry_delay: float = 0.15) -> dict:
         """
         Retrieves the input variables from K2EG.
 
@@ -105,8 +106,6 @@ class K2EGInterface:
             A list of input variable names to retrieve.
         protos : list of str, optional
             A list of protocols corresponding to each input variable (default is 'ca' for all).
-        max_retries : int, optional
-            Maximum number of retry attempts (default is 3).
         retry_delay : float, optional
             Delay in seconds between retries (default is 0.15, 150ms between retries).
 
@@ -141,16 +140,21 @@ class K2EGInterface:
         
         def _try_pvs(protos):
             m = len(input_pvs)
-            for _ in range(max_retries):
+            attempt = 0
+            while True: #Keep retrying forever
+                attempt+=1
                 rv = tuple(_all_pvs(protos))
                 if len(rv) == m:
+                    # Success 
                     return rv
-                e = f"only got len(pvs)={len(rv)} out of expect={m}"
+                # Failed to get all PVs, log and retry
+                msg = f"only got len(pvs)={len(rv)} out of expect={m}"
                 logging.warning(e)
                 time.sleep(retry_delay)
             raise RuntimeError(e)
         
         return dict(_try_pvs(_protos()))
+
 
     def put_output_variables(self, output_dict: dict, protos: list = None, max_retries: int = 2, retry_delay: float = 0.1):
         """
@@ -174,7 +178,7 @@ class K2EGInterface:
         if protos is None:
             protos = ["ca"] * len(output_dict)
         elif len(protos) != len(output_dict):
-            raise ValueError("Length of protos list must match length of output_dict.")
+            raise ValueError(f"Length of protos ({len(protos)}) must match length of output_dict ({len(output_dict)}).")
 
         for (var, value), proto in zip(output_dict.items(), protos):
             last_error = None
@@ -184,7 +188,7 @@ class K2EGInterface:
                     self.put_pv(var, value, proto=proto)
                     # Success
                     if attempt > 0:
-                        logging.info(f"Successfully put PV {var} on attempt {attempt + 1}")
+                        logging.info(f"Successfully put PV {var}")
                     break  # Move to next PV
                 
                 except Exception as e:
@@ -197,10 +201,12 @@ class K2EGInterface:
                     else:
                         logging.error(
                             f"Failed to put PV {var} after {max_retries} attempts: {e}"
+                            f"Outputs are now stale - iteration will restart with fresh inputs."
                         )
-                        raise RuntimeError(
-                            f"Failed to put PV {var} after {max_retries} attempts. Last error: {last_error}"
-                        )
+                        raise OutputWriteFailure(
+                        f"Failed to put PV {var} after {max_retries} attempts. "
+                        f"Last error: {last_error}"
+                    )
 
     def close(self):
         """
