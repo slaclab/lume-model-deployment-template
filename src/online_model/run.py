@@ -4,6 +4,7 @@ import logging
 import time
 import collections
 from pathlib import Path
+from typing import List, Dict, Optional, Tuple
 import yaml
 import mlflow
 from online_model.mlflow_utils import MLflowRun
@@ -17,6 +18,8 @@ from online_model.transformers.transformer import (
 )
 import os
 import random
+import math
+import numpy as np
 
 from online_model.client import InferenceClient
 from exceptions import OutputWriteFailure
@@ -42,6 +45,36 @@ class MultiLineDict(collections.UserDict):
     def __str__(self):
         return "\n" + "\n".join(f"{k} = {v}" for k, v in self.data.items())
 
+def validate_inputs(input_dict: Dict[str, float]) -> Tuple[bool, List[str]]:
+    """
+    Validate input dictionary for Nan/Inf values
+    
+    Parameters
+    ----------
+    input_dict : dict
+        Dictionary of input variable names and their values to validate.
+    
+    Returns
+    -------
+    tuple (is_valid, invalid_keys)
+        is_valid: bool indicating if all inputs are valid
+        invalid_keys: list of keys that have invalid values
+    """
+    invalid_keys = []
+
+    for key, value in input_dict.items():
+        if isinstance(value, (float, np.floating)):
+            if math.isnan(value):
+                invalid_keys.append(f"{key} (NaN)")
+            elif math.isinf(value):
+                invalid_keys.append(f"{key} (Inf)")
+        elif isinstance(value, np.ndarray):
+            if np.any(np.isnan(value)):
+                invalid_keys.append(f"{key} (array contains NaN)")
+            elif np.any(np.isinf(value)):
+                invalid_keys.append(f"{key} (array contains Inf)")
+    
+    return len(invalid_keys) == 0, invalid_keys
 
 def get_interface(interface_name, pvname_list=None):
     if interface_name == "test":
@@ -131,6 +164,23 @@ def get_model_inputs(interface, input_pv_transformer, inference_client=None):
 
     else:
         raise ValueError(f"Unknown interface: {interface.name}")
+    
+    # VALIDATE INPUTS
+    is_valid, invalid_keys = validate_inputs(input_dict)
+    
+    if not is_valid:
+        logger.warning(f"Invalid input values detected: {invalid_keys}")
+        
+        # Log raw values for debugging (only for epics/k2eg)
+        if input_dict_raw is not None:
+            logger.debug("Raw PV values for invalid inputs:")
+            for invalid_key in invalid_keys:
+                # Extract PV name (remove " (NaN)" or " (Inf)" suffix)
+                pv_name = invalid_key.split(" (")[0]
+                if pv_name in input_dict_raw:
+                    logger.debug(f"  {pv_name} = {input_dict_raw[pv_name]}")
+        
+        return None, None  # Signal invalid inputs
 
     logger.debug("Input values: %s", MultiLineDict(input_dict))
     return input_dict, input_dict_raw
@@ -278,7 +328,13 @@ def run_iteration(inference_client, interface, input_pv_transformer, output_pv_t
             input_dict, input_dict_raw = get_model_inputs(
                 interface, input_pv_transformer, inference_client
             )
-            
+
+            # CHECK FOR INVALID INPUTS (NaN/Inf)
+            if input_dict is None:
+                logger.warning("Skipping iteration due to invalid input values (NaN/Inf detected)")
+                logger.info("Will retry on next scheduled iteration")
+                return  # Skip this iteration, main loop will continue after rate delay
+
             # Step 2: Evaluate model
             output = evaluate_model_remote(inference_client, input_dict)
             
