@@ -463,7 +463,6 @@ def main():
             # Iteration failed even after retries with fresh inputs
             # Log and move to next iteration
                 logger.error(f"Iteration completely failed: {e}. Moving to next iteration cycle.")
-                time.sleep(rate)
                 continue
             except Exception as e:
                 logger.error(f"Unexpected error: {e}", exc_info=True)

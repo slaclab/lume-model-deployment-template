@@ -121,13 +121,17 @@ class InferenceClient:
     
     def predict(self, inputs: Dict[str, float]) -> Dict[str, Any]:
         """
-        Make a prediction
+        Make a prediction.
         
-        Args:
-            inputs: Dictionary of input features
+        Parameters
+        ----------
+        inputs : Dict[str, float]
+            Dictionary of input features.
             
-        Returns:
-            Prediction response with outputs
+        Returns
+        -------
+        Dict[str, Any]
+            Prediction response with outputs.
         """
         response = self.session.post(
             f"{self.base_url}/predict",
@@ -139,13 +143,17 @@ class InferenceClient:
 
     def predict_batch(self, inputs_list: List[Dict[str, float]]) -> Dict[str, Any]:
         """
-        Make batch predictions
+        Make batch predictions.
         
-        Args:
-            inputs_list: List of input dictionaries (each can be partial)
+        Parameters
+        ----------
+        inputs_list : List[Dict[str, float]]
+            List of input dictionaries (each can be partial).
             
-        Returns:
-            Batch prediction response with list of outputs
+        Returns
+        -------
+        Dict[str, Any]
+            Batch prediction response with list of outputs.
         """
         response = self.session.post(
             f"{self.base_url}/predict/batch",
