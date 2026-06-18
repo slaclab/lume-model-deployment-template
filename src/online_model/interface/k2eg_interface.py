@@ -3,7 +3,7 @@ import time
 import sys
 import k2eg
 from k2eg.serialization import Scalar
-from exceptions import OutputWriteFailure
+from online_model.exceptions import OutputWriteFailure
 
 logging.basicConfig(
     stream=sys.stdout,
@@ -149,9 +149,8 @@ class K2EGInterface:
                     return rv
                 # Failed to get all PVs, log and retry
                 msg = f"only got len(pvs)={len(rv)} out of expect={m}"
-                logging.warning(e)
+                logging.warning(msg)
                 time.sleep(retry_delay)
-            raise RuntimeError(e)
         
         return dict(_try_pvs(_protos()))
 

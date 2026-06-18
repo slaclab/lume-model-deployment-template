@@ -22,7 +22,7 @@ import math
 import numpy as np
 
 from online_model.client import InferenceClient
-from exceptions import OutputWriteFailure
+from online_model.exceptions import OutputWriteFailure
 
 
 
