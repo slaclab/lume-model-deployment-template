@@ -1,5 +1,17 @@
+import logging
+import time
+import sys
 import k2eg
 from k2eg.serialization import Scalar
+from exceptions import OutputWriteFailure
+
+logging.basicConfig(
+    stream=sys.stdout,
+    format="%(asctime)s,%(msecs)03d %(name)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.DEBUG,
+)
+logger = logging.getLogger(__name__)
 
 
 class K2EGInterface:
@@ -84,7 +96,7 @@ class K2EGInterface:
 
         self.k2eg_client.put(proto + "://" + pv_name, serialized_value, timeout)
 
-    def get_input_variables(self, input_pvs: list, protos: list[str] = None) -> dict:
+    def get_input_variables(self, input_pvs: list, protos: list[str] = None, retry_delay: float = 0.15) -> dict:
         """
         Retrieves the input variables from K2EG.
 
@@ -94,33 +106,57 @@ class K2EGInterface:
             A list of input variable names to retrieve.
         protos : list of str, optional
             A list of protocols corresponding to each input variable (default is 'ca' for all).
+        retry_delay : float, optional
+            Delay in seconds between retries (default is 0.15, 150ms between retries).
 
         Returns
         -------
         dict
             A dictionary containing the input variable names and their values.
         """
-        input_dict = {}
+        
 
-        if protos is None:
-            protos = ["ca"] * len(input_pvs)
-        elif len(protos) != len(input_pvs):
-            raise ValueError(
-                "Length of protos list must match length of input_pvs list."
-            )
+        def _all_pvs(protos):
+            """get pvs with consistent timestamps"""
+            for var, proto in zip(input_pvs, protos):
+                if (rv := _pv(var, proto)) is None:
+                    return
+                yield var, dict(value=rv["value"], posixseconds=rv["timeStamp"]["secondsPastEpoch"])
 
-        for var, proto in zip(input_pvs, protos):
+        def _protos():
+            if protos is None:
+                return ["ca"] * len(input_pvs)
+            if len(protos) != len(input_pvs):
+                raise ValueError(
+                    f"Length of protos list={len(protos)} must match length of input_pvs list={len(input_pvs)}"
+                )
+            return protos
+
+        def _pv(var, proto):
             try:
-                k2eg_dict = self.get_pv(var, proto=proto)
-                input_dict[var] = {
-                    "value": k2eg_dict["value"],
-                    "posixseconds": k2eg_dict["timeStamp"]["secondsPastEpoch"],
-                }
+                return self.get_pv(var, proto=proto)
             except Exception as e:
-                raise RuntimeError(f"Failed to get PV {var}: {e}")
-        return input_dict
+                return None
+        
+        def _try_pvs(protos):
+            m = len(input_pvs)
+            attempt = 0
+            while True: #Keep retrying forever
+                attempt+=1
+                rv = tuple(_all_pvs(protos))
+                if len(rv) == m:
+                    # Success 
+                    return rv
+                # Failed to get all PVs, log and retry
+                msg = f"only got len(pvs)={len(rv)} out of expect={m}"
+                logging.warning(e)
+                time.sleep(retry_delay)
+            raise RuntimeError(e)
+        
+        return dict(_try_pvs(_protos()))
 
-    def put_output_variables(self, output_dict: dict, protos: list = None):
+
+    def put_output_variables(self, output_dict: dict, protos: list = None, max_retries: int = 2, retry_delay: float = 0.1):
         """
         Writes the output variables to K2EG.
 
@@ -130,6 +166,10 @@ class K2EGInterface:
             A dictionary containing the output variable names and their values.
         protos: list of str, optional
             A list of protocols corresponding to each output variable (default is 'ca' for all).
+        max_retries : int, optional
+            Maximum number of retry attempts per PV (default is 2).
+        retry_delay : float, optional
+            Delay in seconds between retries (default is 0.1, 100ms between retries).
 
         Returns
         -------
@@ -138,13 +178,35 @@ class K2EGInterface:
         if protos is None:
             protos = ["ca"] * len(output_dict)
         elif len(protos) != len(output_dict):
-            raise ValueError("Length of protos list must match length of output_dict.")
+            raise ValueError(f"Length of protos ({len(protos)}) must match length of output_dict ({len(output_dict)}).")
 
-        for (var, value), p in zip(output_dict.items(), protos):
-            try:
-                self.put_pv(var, value, proto=p)
-            except Exception as e:
-                raise RuntimeError(f"Failed to put PV {var}: {e}")
+        for (var, value), proto in zip(output_dict.items(), protos):
+            last_error = None
+        
+            for attempt in range(max_retries):
+                try:
+                    self.put_pv(var, value, proto=proto)
+                    # Success
+                    if attempt > 0:
+                        logging.info(f"Successfully put PV {var}")
+                    break  # Move to next PV
+                
+                except Exception as e:
+                    last_error = e
+                    if attempt < max_retries - 1:
+                        logging.warning(
+                            f"Transient failure putting PV {var} (attempt {attempt + 1}/{max_retries}): {e}. Retrying..."
+                        )
+                        time.sleep(retry_delay)
+                    else:
+                        logging.error(
+                            f"Failed to put PV {var} after {max_retries} attempts: {e}"
+                            f"Outputs are now stale - iteration will restart with fresh inputs."
+                        )
+                        raise OutputWriteFailure(
+                        f"Failed to put PV {var} after {max_retries} attempts. "
+                        f"Last error: {last_error}"
+                    )
 
     def close(self):
         """
