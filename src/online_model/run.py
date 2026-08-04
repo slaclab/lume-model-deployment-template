@@ -414,7 +414,7 @@ def main():
     # Set up PV transformer
     # This is required to map from EPICS PV names to model input names, and apply any formulas
     # defined in configs/pv_mapping.yaml. This is applicable only for EPICS/k2eg interfaces, and is in addition
-    # to the lume-model's own internal input_transform method, if any are defined.
+    # to the lume-torch's own internal input_transform method, if any are defined.
     with open(CONFIG_PATH, "r") as f:
         config_yaml = yaml.safe_load(f)
     input_pv_transformer = InputPVTransformer(config_yaml)

@@ -1,11 +1,11 @@
 # {{deployment_name}}
 
-This is the main deployment repository for the `{{deployment_name}}` of the `{{registered_model_name}}` model using LUME-Model in an online environment.
+This is the main deployment repository for the `{{deployment_name}}` of the `{{registered_model_name}}` model using LUME-Torch in an online environment.
 
 ## Overview
 
 This repository was created from the [lume-model-deployment-template](https://github.com/slaclab/lume-model-deployment-template) using `copier`. 
-It provides a structured approach to deploying machine learning models using [LUME-Model](https://github.com/slaclab/lume-model) 
+It provides a structured approach to deploying machine learning models using [LUME-Torch](https://github.com/lume-science/lume-torch)
 in an online environment. It offers a reproducible method for containerizing and deploying ML models, ensuring consistency
 and ease of use across different projects, while minimizing boilerplate code for deployment.
 
@@ -24,7 +24,7 @@ Before using this template, ensure you have registered your model in MLflow and 
 Please see the original template repository's [README](https://github.com/slaclab/lume-model-deployment-template/blob/main/README.md) for instructions on how to do this.
 
 > [!IMPORTANT]  
-> There is currently no validation implemented for this; user must ensure config matches the LUME-model and that the mapping
+> There is currently no validation implemented for this; user must ensure config matches the LUME-torch model and that the mapping
 is defined correctly.
 
 ### 1. Create a Deployment Repository
@@ -112,5 +112,5 @@ Then edit the `template_config` to set `mlflow_tracking_uri="http://127.0.0.1:80
 
 ---
 
-For more details, see the [lume-model documentation](https://github.com/slaclab/lume-model) and the [Copier documentation](https://copier.readthedocs.io/).
+For more details, see the [lume-torch documentation](https://github.com/lume-science/lume-torch) and the [Copier documentation](https://copier.readthedocs.io/).
 

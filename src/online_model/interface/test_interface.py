@@ -20,7 +20,7 @@ class TestInterface:
         Parameters
         ----------
         input_variables : list
-            List of input variable objects, of lume-model ScalarVariable type.
+            List of input variable objects, of lume-torch TorchScalarVariable type.
 
         Returns
         -------

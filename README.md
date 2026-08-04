@@ -4,7 +4,7 @@
 > This template is under active development and may change. Please report any issues or suggestions.
 
 This repository provides a [copier](https://copier.readthedocs.io/) template for deploying machine learning models 
-using [LUME-Model](https://github.com/slaclab/lume-model) in an online environment. It offers a structured, 
+using [LUME-Torch](https://github.com/lume-science/lume-torch) in an online environment. It offers a structured, 
 reproducible approach to containerizing and deploying ML models, ensuring consistency and ease of use across different
 projects, and reducing the overhead of writing boilerplate code for deployment.
 
@@ -59,7 +59,7 @@ Note that:
 
 ```python
 import mlflow
-from lume_model.models import TorchModel
+from lume_torch.models import TorchModel
 
 # load model from yaml
 model = TorchModel("model_config.yaml")
@@ -121,7 +121,7 @@ input_variables:
     formula: (INPUT:PV:1**2 + INPUT:PV:2**2)**(1/2)
     proto: ca
   model_input_2:
-    formula: "1.850"  # constant value needs to match lume-model config exactly
+    formula: "1.850"  # constant value needs to match lume-torch config exactly
   model_input_3:
     symbols:
       - INPUT:PV:3

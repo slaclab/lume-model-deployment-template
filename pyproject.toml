@@ -17,7 +17,7 @@ dependencies = [
     "k2eg>=0.3.2",
     # mlflow on conda is at 3.2.0 but we need 3.4.x so can't install lume and mlflow from conda in pixi
     "mlflow==3.4.*",
-    "lume-model>=2.0",
+    "lume-torch>=3.0",
     "sympy",
     # add any extra dependencies here
 ]

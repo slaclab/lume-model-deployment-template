@@ -2,7 +2,7 @@ import logging
 import mlflow
 from mlflow import MlflowClient
 from mlflow.models.model import get_model_info
-from lume_model.models import TorchModel, TorchModule
+from lume_torch.models import TorchModel, TorchModule
 from online_model.configs.template_config import mlflow_tracking_uri, deployment_name
 
 
